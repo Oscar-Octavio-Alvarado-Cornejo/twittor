@@ -28,13 +28,24 @@ const APP_SHELL_INMUTABLE = [
 ];
 
 self.addEventListener('install', e => {
+  const cacheStatic = caches.open(STATIC_CACHE)
+    .then(cache => cache.addAll(APP_SHELL))
+    .catch(err => console.error('STATIC_CACHE fallo:', err));
 
-    const cacheStatic = caches.open(STATIC_CACHE).then(cache => cache.addAll(APP_SHELL));
-    const cacheInmutable = caches.open(INMUTABLE_CACHE).then(cache => cache.addAll(APP_SHELL_INMUTABLE));
+  const cacheInmutable = caches.open(INMUTABLE_CACHE)
+    .then(cache => {
+      const requests = APP_SHELL_INMUTABLE.map(url =>
+        url.startsWith('http')
+          ? new Request(url, { mode: 'no-cors' })
+          : new Request(url, { mode: 'same-origin' })
+      );
+      return cache.addAll(requests);
+    })
+    .catch(err => console.error('INMUTABLE_CACHE fallo:', err));
 
-
-    e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
+  e.waitUntil(Promise.all([cacheStatic, cacheInmutable]));
 });
+
 
 
 self.addEventListener('activate', e => {
